@@ -1,5 +1,7 @@
 # CollegeHub - College Management System
 
+> **Live Demo:** https://college-management-system-sand.vercel.app
+
 A comprehensive college management platform with AI chatbot integration.
 
 ## Features
