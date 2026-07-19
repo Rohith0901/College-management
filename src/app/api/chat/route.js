@@ -379,44 +379,58 @@ export async function POST(req) {
     }
 
     await dbConnect();
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: SYSTEM_PROMPT + (user ? `\n\nLogged-in user: ${user.name} (${user.email}, role: ${user.role})` : '\n\nNo user is currently logged in.'),
-      tools,
-    });
 
-    const chat = model.startChat({
-      history: history.map(h => ({
-        role: h.role === 'user' ? 'user' : 'model',
-        parts: [{ text: h.text }],
-      })),
-    });
+    const systemInstruction = SYSTEM_PROMPT + (user
+      ? `\n\nLogged-in user: ${user.name} (${user.email}, role: ${user.role})`
+      : '\n\nNo user is currently logged in.');
 
-    const result = await chat.sendMessage(message);
-    let responseText = result.response.text();
-    const functionCalls = result.response.functionCalls();
-    const actions = [];
+    const chatHistory = history.map(h => ({
+      role: h.role === 'user' ? 'user' : 'model',
+      parts: [{ text: h.text }],
+    }));
 
-    if (functionCalls && functionCalls.length > 0) {
-      let callResults = [];
-      for (const fc of functionCalls) {
-        const toolResult = await executeTool(fc.name, fc.args, user?._id);
-        callResults.push({ name: fc.name, args: fc.args, result: toolResult.result });
-        actions.push({ type: fc.name, args: fc.args, result: toolResult.result });
+    const models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+    let lastError = null;
+
+    for (const modelName of models) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName, systemInstruction, tools });
+        const chat = model.startChat({ history: chatHistory });
+        const result = await chat.sendMessage(message);
+        let responseText = result.response.text();
+        const functionCalls = result.response.functionCalls();
+        const actions = [];
+
+        if (functionCalls && functionCalls.length > 0) {
+          const callResults = [];
+          for (const fc of functionCalls) {
+            const toolResult = await executeTool(fc.name, fc.args, user?._id);
+            callResults.push({ name: fc.name, args: fc.args, result: toolResult.result });
+            actions.push({ type: fc.name, args: fc.args, result: toolResult.result });
+          }
+          const toolResponseParts = callResults.map(cr => ({
+            functionResponse: { name: cr.name, response: { result: cr.result } },
+          }));
+          const finalResult = await chat.sendMessage([{ functionResponse: toolResponseParts }]);
+          responseText = finalResult.response.text();
+        }
+
+        return NextResponse.json({ response: responseText, actions });
+      } catch (err) {
+        lastError = err;
+        const status = err?.status || err?.code;
+        if (status === 429 || status === 403) continue;
+        break;
       }
-
-      const toolResponseParts = callResults.map(cr => ({
-        functionResponse: {
-          name: cr.name,
-          response: { result: cr.result },
-        },
-      }));
-
-      const finalResult = await chat.sendMessage([{ functionResponse: toolResponseParts }]);
-      responseText = finalResult.response.text();
     }
 
-    return NextResponse.json({ response: responseText, actions });
+    const isQuota = lastError?.status === 429;
+    return NextResponse.json({
+      response: isQuota
+        ? 'AI rate limit reached. Please wait a minute and try again.'
+        : 'Sorry, I encountered an error. Please try again.',
+      actions: [],
+    }, { status: isQuota ? 429 : 500 });
   } catch (error) {
     console.error('Chat API error:', error);
     return NextResponse.json({

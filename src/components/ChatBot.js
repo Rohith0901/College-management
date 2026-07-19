@@ -52,12 +52,11 @@ export default function ChatBot() {
         body: JSON.stringify({ message: msg, history }),
       });
       const data = await res.json();
+      const text = res.status === 429
+        ? 'Rate limit reached. Please wait a minute and try again.'
+        : data.response || 'Something went wrong.';
 
-      setMessages(prev => [...prev, {
-        role: 'bot',
-        text: data.response,
-        actions: data.actions || [],
-      }]);
+      setMessages(prev => [...prev, { role: 'bot', text, actions: data.actions || [] }]);
       setHistory(prev => [
         ...prev,
         { role: 'user', text: msg },
