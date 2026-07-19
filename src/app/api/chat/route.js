@@ -389,7 +389,7 @@ export async function POST(req) {
       parts: [{ text: h.text }],
     }));
 
-    const models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+    const models = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
     let lastError = null;
 
     for (const modelName of models) {
