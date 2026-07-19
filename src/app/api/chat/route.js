@@ -418,6 +418,7 @@ export async function POST(req) {
         return NextResponse.json({ response: responseText, actions });
       } catch (err) {
         lastError = err;
+        console.error(`Gemini ${modelName} failed:`, err?.message, err?.status || err?.code);
         const status = err?.status || err?.code;
         if (status === 429 || status === 403) continue;
         break;
