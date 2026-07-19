@@ -7,6 +7,9 @@ import Doctor from '@/models/Doctor';
 import Turf from '@/models/Turf';
 import Room from '@/models/Room';
 import Booking from '@/models/Booking';
+import Complaint from '@/models/Complaint';
+import { verifyToken } from '@/lib/auth';
+import User from '@/models/User';
 
 function matchIntent(message) {
   const lower = message.toLowerCase();
@@ -46,15 +49,165 @@ function matchIntent(message) {
     return 'room';
   }
 
-  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-    return 'greeting';
-  }
-
-  if (lower.includes('help') || lower.includes('what can')) {
-    return 'help';
-  }
+  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) return 'greeting';
+  if (lower.includes('help') || lower.includes('what can')) return 'help';
 
   return 'unknown';
+}
+
+async function fetchData(intent, userId) {
+  const now = new Date();
+
+  switch (intent) {
+    case 'cafeteria_availability': {
+      const cafeterias = await Cafeteria.find({});
+      return cafeterias.length === 0
+        ? 'No cafeterias found in the system yet.'
+        : 'Cafeteria data:\n' + cafeterias.map(c =>
+          `${c.name} at ${c.location}, Hours: ${c.operatingHours}, Seats: ${c.totalSlots}`
+        ).join('\n');
+    }
+
+    case 'cafeteria_menu': {
+      const cafeterias = await Cafeteria.find({});
+      if (cafeterias.length === 0) return 'No cafeteria menu available yet.';
+      return 'Menu:\n' + cafeterias.map(c =>
+        `${c.name}:\n${c.menu.filter(m => m.available).map(m => `  ${m.item} - Rs.${m.price} (${m.category})`).join('\n')}`
+      ).join('\n\n');
+    }
+
+    case 'cafeteria_book':
+      return 'To book: Go to Cafeteria section, select cafeteria, choose date/time/seats, click Book.';
+
+    case 'parking': {
+      const parking = await Parking.find({});
+      return parking.length === 0
+        ? 'No parking areas configured.'
+        : 'Parking:\n' + parking.map(p =>
+          `${p.type.toUpperCase()} at ${p.location}: ${p.availableSpots}/${p.totalSpots} available, Rs.${p.pricePerHour}/hr`
+        ).join('\n');
+    }
+
+    case 'exam_upcoming': {
+      const exams = await Exam.find({ date: { $gte: now } }).sort({ date: 1 }).limit(5);
+      return exams.length === 0
+        ? 'No upcoming exams.'
+        : 'Upcoming exams:\n' + exams.map(e => {
+          const days = Math.ceil((new Date(e.date) - now) / 86400000);
+          return `${e.subject} (${e.code || 'N/A'}) on ${new Date(e.date).toLocaleDateString()} at ${e.time}, Room ${e.room}, ${days} days left`;
+        }).join('\n');
+    }
+
+    case 'exam_schedule': {
+      const exams = await Exam.find({}).sort({ date: 1 });
+      return exams.length === 0
+        ? 'No exams scheduled.'
+        : 'Full schedule:\n' + exams.map(e =>
+          `${e.subject} - ${new Date(e.date).toLocaleDateString()} at ${e.time} (${e.type}), Room ${e.room}, Dept ${e.department} Year ${e.year}`
+        ).join('\n');
+    }
+
+    case 'timetable':
+      return 'Go to Timetable section, select department/year/semester to view schedule.';
+
+    case 'doctor': {
+      const doctors = await Doctor.find({});
+      return doctors.length === 0
+        ? 'No doctors info available.'
+        : 'Doctors:\n' + doctors.map(d =>
+          `Dr. ${d.name} - ${d.specialization} - ${d.available ? 'Available' : 'Not Available'} - Room ${d.room || 'N/A'} - Schedule: ${d.schedule.map(s => `${s.day} ${s.startTime}-${s.endTime}`).join(', ')}`
+        ).join('\n');
+    }
+
+    case 'turf': {
+      const turfs = await Turf.find({});
+      if (turfs.length === 0) return 'No turfs available.';
+      return 'Turfs:\n' + turfs.map(t => {
+        const avail = t.slots?.filter(s => !s.isBooked).length || t.totalSlots;
+        return `${t.name} (${t.sport}) at ${t.location}: ${avail}/${t.totalSlots} slots free, Rs.${t.pricePerSlot}/slot`;
+      }).join('\n');
+    }
+
+    case 'complaint':
+      return 'To complain: Go to Complaints section, select type, enter title/description, submit.';
+
+    case 'room': {
+      const rooms = await Room.find({});
+      return rooms.length === 0
+        ? 'No rooms configured.'
+        : 'Rooms:\n' + rooms.map(r =>
+          `${r.name} (${r.building}) - ${r.type}, Cap ${r.capacity}, ${r.isAllocated ? `Allocated to ${r.allocatedTo}` : 'Available'}`
+        ).join('\n');
+    }
+
+    case 'my_bookings': {
+      if (!userId) return 'User not logged in.';
+      const bookings = await Booking.find({ userId, status: { $ne: 'cancelled' } }).sort({ date: -1 });
+      return bookings.length === 0
+        ? 'No active bookings.'
+        : 'My bookings:\n' + bookings.map(b =>
+          `${b.type} - ${b.resourceName} on ${b.date?.toISOString()?.split('T')[0]} at ${b.timeSlot} (${b.status})`
+        ).join('\n');
+    }
+
+    default:
+      return null;
+  }
+}
+
+async function callNvidiaAI(userMessage, contextData) {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  if (!apiKey) return null;
+
+  const systemPrompt = `You are CollegeHub AI, a friendly campus assistant. You help college students with cafeteria, parking, exams, doctors, turf, complaints, and room allocation. Be concise, helpful, and conversational. Format responses nicely with clear structure. Use emoji sparingly. Never make up data - only use what's provided.`;
+
+  const userContent = contextData
+    ? `User asked: "${userMessage}"\n\nHere is the relevant data from the system:\n${contextData}\n\nRespond to the user naturally using this data.`
+    : userMessage;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+
+    const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-ai/deepseek-v4-pro',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        temperature: 0.7,
+        top_p: 0.9,
+        max_tokens: 1024,
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || null;
+  } catch {
+    return null;
+  }
+}
+
+function getPredefinedResponse(intent) {
+  switch (intent) {
+    case 'greeting':
+      return "Hello! I'm CollegeHub AI. I can help you with:\n- Cafeteria (availability, menu, booking)\n- Parking (bike/car spots)\n- Exams (schedule, upcoming)\n- Doctors (availability)\n- Turf (booking)\n- Complaints\n- Room allocation\n\nWhat would you like to know?";
+    case 'help':
+      return "Here's what I can help you with:\n\n Cafeteria - Check availability, view menu, book tables\n Parking - Check bike/car parking spots\n Exams - View schedules, upcoming exams\n Doctors - Check availability, specializations\n Turf - Book sports turf slots\n Complaints - How to raise complaints\n Rooms - Check room allocation\n\nJust ask me anything!";
+    default:
+      return "I'm not sure I understand. You can ask me about:\n- Cafeteria (availability, menu, booking)\n- Parking (bike/car spots)\n- Exams (schedule, upcoming)\n- Doctors (availability)\n- Turf (booking)\n- Complaints\n- Room allocation\n\nTry asking something like 'Any cafeteria slots left?' or 'When is my next exam?'";
+  }
 }
 
 export async function POST(req) {
@@ -63,155 +216,19 @@ export async function POST(req) {
     const { message } = await req.json();
     const intent = matchIntent(message);
 
-    let response = '';
+    const contextData = await fetchData(intent);
 
-    switch (intent) {
-      case 'greeting':
-        response = "Hello! I'm CollegeHub AI assistant. I can help you with:\n- Cafeteria booking & menu\n- Parking availability\n- Exam schedules\n- Doctor availability\n- Turf booking\n- Complaints\n- Room allocation\n\nWhat would you like to know?";
-        break;
-
-      case 'help':
-        response = "Here's what I can help you with:\n\n Cafeteria - Check availability, view menu, book tables\n Parking - Check bike/car parking spots\n Exams - View schedules, upcoming exams\n Doctors - Check availability, specializations\n Turf - Book sports turf slots\n Complaints - How to raise complaints\n Rooms - Check room allocation\n\nJust ask me anything!";
-        break;
-
-      case 'cafeteria_availability': {
-        const cafeterias = await Cafeteria.find({});
-        if (cafeterias.length === 0) {
-          response = "No cafeterias found in the system yet.";
-        } else {
-          response = "Here are the cafeterias and their info:\n\n";
-          cafeterias.forEach(c => {
-            response += `${c.name} at ${c.location}\n  Hours: ${c.operatingHours}\n  Total slots: ${c.totalSlots}\n\n`;
-          });
-          response += "Would you like to book a table or check the menu?";
-        }
-        break;
-      }
-
-      case 'cafeteria_menu': {
-        const cafeterias = await Cafeteria.find({});
-        if (cafeterias.length === 0) {
-          response = "No cafeteria menu available yet.";
-        } else {
-          response = "Menu from our cafeterias:\n\n";
-          cafeterias.forEach(c => {
-            response += `${c.name}:\n`;
-            c.menu.forEach(m => {
-              if (m.available) response += `  ${m.item} - Rs.${m.price} (${m.category})\n`;
-            });
-            response += "\n";
-          });
-        }
-        break;
-      }
-
-      case 'cafeteria_book':
-        response = "To book a cafeteria table:\n1. Go to the Cafeteria section\n2. Select your preferred cafeteria\n3. Choose date and time slot\n4. Select number of seats\n5. Place your order (optional)\n\nClick 'Book Now' to confirm!";
-        break;
-
-      case 'parking': {
-        const parking = await Parking.find({});
-        if (parking.length === 0) {
-          response = "No parking areas configured yet.";
-        } else {
-          response = "Parking availability:\n\n";
-          parking.forEach(p => {
-            response += `${p.type.toUpperCase()} Parking at ${p.location}\n  Total: ${p.totalSpots} | Available: ${p.availableSpots}\n  Price: Rs.${p.pricePerHour}/hour\n\n`;
-          });
-          response += "Would you like to book a spot?";
-        }
-        break;
-      }
-
-      case 'exam_upcoming': {
-        const now = new Date();
-        const exams = await Exam.find({ date: { $gte: now } }).sort({ date: 1 }).limit(5);
-        if (exams.length === 0) {
-          response = "No upcoming exams scheduled.";
-        } else {
-          response = "Your upcoming exams:\n\n";
-          exams.forEach(e => {
-            const daysLeft = Math.ceil((new Date(e.date) - now) / (1000 * 60 * 60 * 24));
-            response += `${e.subject} (${e.code || 'N/A'})\n  Date: ${new Date(e.date).toLocaleDateString()} | Time: ${e.time}\n  Room: ${e.room} | Duration: ${e.duration}\n  Days left: ${daysLeft}\n\n`;
-          });
-        }
-        break;
-      }
-
-      case 'exam_schedule': {
-        const exams = await Exam.find({}).sort({ date: 1 });
-        if (exams.length === 0) {
-          response = "No exam schedule available yet. Ask admin to add exams.";
-        } else {
-          response = "Full exam schedule:\n\n";
-          exams.forEach(e => {
-            response += `${e.subject} - ${new Date(e.date).toLocaleDateString()} at ${e.time} (${e.type})\n  Room: ${e.room} | Dept: ${e.department} | Year: ${e.year}\n\n`;
-          });
-        }
-        break;
-      }
-
-      case 'timetable':
-        response = "To view your timetable:\n1. Go to the Timetable section\n2. Select your department and year\n3. View your weekly schedule\n\nYou can see all subjects, timings, rooms, and faculty details.";
-        break;
-
-      case 'doctor': {
-        const doctors = await Doctor.find({});
-        if (doctors.length === 0) {
-          response = "No doctors information available yet.";
-        } else {
-          response = "College Hospital - Doctor Availability:\n\n";
-          doctors.forEach(d => {
-            const status = d.available ? "Available" : "Not Available";
-            response += `Dr. ${d.name} - ${d.specialization}\n  Status: ${status}\n  Room: ${d.room || 'N/A'}\n  Schedule:\n`;
-            d.schedule.forEach(s => {
-              response += `    ${s.day}: ${s.startTime} - ${s.endTime}\n`;
-            });
-            response += "\n";
-          });
-          response += "Would you like to book an appointment?";
-        }
-        break;
-      }
-
-      case 'turf': {
-        const turfs = await Turf.find({});
-        if (turfs.length === 0) {
-          response = "No turfs available for booking yet.";
-        } else {
-          response = "Available turfs:\n\n";
-          turfs.forEach(t => {
-            const availableSlots = t.slots.filter(s => !s.isBooked).length;
-            response += `${t.name} (${t.sport})\n  Location: ${t.location}\n  Available slots: ${availableSlots}/${t.totalSlots}\n  Price: Rs.${t.pricePerSlot}/slot\n\n`;
-          });
-          response += "Go to Turf section to book a slot!";
-        }
-        break;
-      }
-
-      case 'complaint':
-        response = "To raise a complaint:\n1. Go to the Complaints section\n2. Select complaint type (bullying, maintenance, harassment, ragging, etc.)\n3. Enter title and description\n4. Choose to submit anonymously if needed\n5. Submit\n\nYou can track your complaint status in the same section.";
-        break;
-
-      case 'room': {
-        const rooms = await Room.find({});
-        if (rooms.length === 0) {
-          response = "No rooms configured yet.";
-        } else {
-          response = "Room allocation status:\n\n";
-          rooms.forEach(r => {
-            const status = r.isAllocated ? `Allocated to ${r.allocatedTo}` : "Available";
-            response += `${r.name} (${r.building})\n  Type: ${r.type} | Capacity: ${r.capacity}\n  Status: ${status}\n\n`;
-          });
-        }
-        break;
-      }
-
-      default:
-        response = "I'm not sure I understand. You can ask me about:\n- Cafeteria (availability, menu, booking)\n- Parking (bike/car spots)\n- Exams (schedule, upcoming)\n- Doctors (availability)\n- Turf (booking)\n- Complaints\n- Room allocation\n\nTry asking something like 'Any cafeteria slots left?' or 'When is my next exam?'";
+    if (contextData === null) {
+      return NextResponse.json({ response: getPredefinedResponse(intent) });
     }
 
-    return NextResponse.json({ response });
+    const aiResponse = await callNvidiaAI(message, contextData);
+
+    if (aiResponse) {
+      return NextResponse.json({ response: aiResponse });
+    }
+
+    return NextResponse.json({ response: contextData || getPredefinedResponse(intent) });
   } catch (error) {
     return NextResponse.json({ response: "Sorry, I encountered an error. Please try again." }, { status: 500 });
   }
