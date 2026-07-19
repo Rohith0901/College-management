@@ -26,7 +26,8 @@ export function verifyToken(token) {
 }
 
 export async function getUserFromRequest(req) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
+  const authHeader = req.headers.get?.('authorization') || req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '');
   if (!token) return null;
 
   const decoded = verifyToken(token);

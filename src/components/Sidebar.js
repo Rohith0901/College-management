@@ -23,10 +23,10 @@ export default function Sidebar() {
   const { user } = useAuth();
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-[76px] bg-sidebar flex flex-col items-center py-5 z-50">
-      <div className="w-10 h-10 bg-teal-500 rounded-xl flex items-center justify-center mb-8">
+    <aside className="fixed left-0 top-0 h-full w-[72px] bg-white/70 backdrop-blur-apple border-r border-divider flex flex-col items-center py-5 z-50">
+      <Link href="/dashboard" className="w-10 h-10 bg-ink rounded-apple-sm flex items-center justify-center mb-8 transition-transform hover:scale-105 duration-200">
         <span className="text-white font-bold text-lg">C</span>
-      </div>
+      </Link>
 
       <nav className="flex flex-col items-center gap-1 flex-1">
         {navItems.map(({ href, icon: Icon, label }) => {
@@ -36,30 +36,30 @@ export default function Sidebar() {
               key={href}
               href={href}
               title={label}
-              className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${
+              className={`relative w-10 h-10 rounded-apple-sm flex items-center justify-center transition-all duration-200 ${
                 active
-                  ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
-                  : 'text-teal-300/60 hover:text-white hover:bg-sidebarHover'
+                  ? 'bg-ink text-white'
+                  : 'text-muted hover:text-ink hover:bg-elevated'
               }`}
             >
-              <Icon size={20} />
+              <Icon size={18} strokeWidth={active ? 2 : 1.5} />
             </Link>
           );
         })}
 
         {user?.role === 'admin' && (
           <>
-            <div className="w-8 h-px bg-teal-800 my-2" />
+            <div className="w-6 h-px bg-divider my-2" />
             <Link
               href="/admin"
               title="Admin"
-              className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${
+              className={`w-10 h-10 rounded-apple-sm flex items-center justify-center transition-all duration-200 ${
                 pathname === '/admin'
-                  ? 'bg-coral-500 text-white shadow-lg shadow-coral-500/30'
-                  : 'text-teal-300/60 hover:text-white hover:bg-sidebarHover'
+                  ? 'bg-ink text-white'
+                  : 'text-muted hover:text-ink hover:bg-elevated'
               }`}
             >
-              <FiSettings size={20} />
+              <FiSettings size={18} strokeWidth={1.5} />
             </Link>
           </>
         )}
@@ -69,9 +69,9 @@ export default function Sidebar() {
         <Link
           href="/dashboard"
           title="AI Assistant"
-          className="w-11 h-11 rounded-xl flex items-center justify-center text-teal-300/60 hover:text-white hover:bg-sidebarHover transition-all duration-200"
+          className="w-10 h-10 rounded-apple-sm flex items-center justify-center text-muted hover:text-ink hover:bg-elevated transition-all duration-200"
         >
-          <FiMessageCircle size={20} />
+          <FiMessageCircle size={18} strokeWidth={1.5} />
         </Link>
       </div>
     </aside>

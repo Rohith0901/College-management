@@ -27,60 +27,79 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-cream-100">
+    <div className="min-h-screen flex bg-surface">
       <Toaster position="top-center" />
-      <div className="hidden lg:flex lg:w-1/2 bg-teal-800 relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(20,184,166,0.3),transparent_60%)]" />
-        <div className="relative text-center px-12">
-          <div className="w-16 h-16 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
-            <span className="text-white font-bold text-3xl">C</span>
+
+      {/* Left branding panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-ink relative overflow-hidden items-center justify-center">
+        <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '32px 32px'}} />
+        <div className="relative text-center px-16 max-w-lg">
+          <div className="w-16 h-16 bg-white/10 rounded-apple-md flex items-center justify-center mx-auto mb-8 backdrop-blur-sm border border-white/10">
+            <span className="text-white font-bold text-3xl tracking-tight">C</span>
           </div>
-          <h2 className="text-4xl font-bold text-white mb-4">CollegeHub</h2>
-          <p className="text-teal-200/70 text-lg">Your all-in-one campus management platform</p>
+          <h2 className="text-5xl font-bold text-white mb-4 tracking-tight leading-tight">CollegeHub</h2>
+          <p className="text-white/40 text-lg leading-relaxed">Your all-in-one campus management platform</p>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-2.5 mb-8">
-            <div className="w-10 h-10 bg-teal-800 rounded-xl flex items-center justify-center">
+      {/* Right login form */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
+        <div className="w-full max-w-md animate-apple-in">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 bg-ink rounded-apple-sm flex items-center justify-center">
               <span className="text-white font-bold text-lg">C</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">CollegeHub</span>
+            <span className="text-xl font-bold text-ink tracking-tight">CollegeHub</span>
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome Back</h1>
-          <p className="text-gray-500 mb-8">Sign in to your account</p>
+          <h1 className="text-4xl font-bold text-ink mb-2 tracking-tight">Welcome back.</h1>
+          <p className="text-muted text-lg mb-10">Sign in to your account to continue.</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="label">Email</label>
               <div className="relative">
-                <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input-field pl-10" placeholder="you@college.edu" required />
+                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/50" size={16} strokeWidth={1.5} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-field pl-11"
+                  placeholder="you@college.edu"
+                  required
+                />
               </div>
             </div>
             <div>
               <label className="label">Password</label>
               <div className="relative">
-                <FiLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="input-field pl-10" placeholder="Enter password" required />
+                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/50" size={16} strokeWidth={1.5} />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field pl-11"
+                  placeholder="Enter password"
+                  required
+                />
               </div>
             </div>
-            <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3">
+            <button type="submit" disabled={loading}
+              className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 mt-2 disabled:opacity-40 disabled:cursor-not-allowed">
               {loading ? 'Signing in...' : <>Sign In <FiArrowRight size={16} /></>}
             </button>
           </form>
 
-          <p className="text-center mt-6 text-sm text-gray-500">
-            Don&apos;t have an account? <Link href="/register" className="text-teal-700 font-semibold hover:underline">Create one</Link>
+          <p className="text-center mt-8 text-sm text-muted">
+            Don&apos;t have an account? <Link href="/register" className="text-accent font-medium hover:underline">Create one</Link>
           </p>
 
-          <div className="mt-8 p-4 bg-cream-50 rounded-xl border border-cream-200 text-sm">
-            <p className="font-semibold text-gray-700 mb-2">Demo Credentials</p>
-            <div className="space-y-1 text-gray-500">
-              <p><span className="font-medium text-gray-700">Admin:</span> admin@college.edu / admin123</p>
-              <p><span className="font-medium text-gray-700">Student:</span> student@college.edu / student123</p>
+          <div className="mt-8 p-5 bg-elevated rounded-apple-md">
+            <p className="font-semibold text-ink text-sm mb-2.5">Demo Credentials</p>
+            <div className="space-y-1.5 text-sm">
+              <p className="text-muted"><span className="font-medium text-ink">Admin:</span> admin@college.edu / admin123</p>
+              <p className="text-muted"><span className="font-medium text-ink">Student:</span> student@college.edu / student123</p>
             </div>
           </div>
         </div>

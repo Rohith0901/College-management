@@ -3,21 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiCoffee, FiTruck, FiBookOpen, FiClock, FiMapPin, FiAlertCircle, FiHeart, FiGrid, FiCalendar, FiTrendingUp } from 'react-icons/fi';
-
-function DonutChart({ value, total, color, size = 80 }) {
-  const radius = (size - 8) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const pct = total > 0 ? value / total : 0;
-  return (
-    <svg width={size} height={size} className="transform -rotate-90">
-      <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#f5f0e8" strokeWidth="6" />
-      <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
-        strokeDasharray={circumference} strokeDashoffset={circumference * (1 - pct)}
-        className="transition-all duration-700" />
-    </svg>
-  );
-}
+import { FiCoffee, FiBookOpen, FiClock, FiMapPin, FiAlertCircle, FiHeart, FiGrid } from 'react-icons/fi';
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -50,69 +36,74 @@ export default function Dashboard() {
 
   if (loading || !user) return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="animate-spin w-8 h-8 border-4 border-teal-800 border-t-transparent rounded-full" />
+      <div className="w-6 h-6 border-2 border-ink/20 border-t-ink rounded-full animate-spin" />
     </div>
   );
 
+  const statCards = [
+    { label: 'Exams Scheduled', value: stats.exams, max: 20, accent: '#0071E3' },
+    { label: 'My Complaints', value: stats.complaints, max: 10, accent: '#FF9500' },
+    { label: 'Cafeterias', value: stats.cafeteria, max: 10, accent: '#34C759' },
+    { label: 'Parking Zones', value: stats.parking, max: 10, accent: '#5856D6' },
+  ];
+
   const modules = [
-    { icon: FiCoffee, title: 'Cafeteria', desc: 'Book tables & order food', href: '/cafeteria', color: 'bg-coral-500', stat: stats.cafeteria },
-    { icon: FiGrid, title: 'Parking', desc: 'Reserve parking spots', href: '/parking', color: 'bg-sky-500', stat: stats.parking },
-    { icon: FiBookOpen, title: 'Exams', desc: 'View exam schedules', href: '/exams', color: 'bg-red-500', stat: stats.exams },
-    { icon: FiClock, title: 'Timetable', desc: 'Class schedule', href: '/timetable', color: 'bg-emerald-500' },
-    { icon: FiMapPin, title: 'Turf', desc: 'Book sports turf', href: '/turf', color: 'bg-purple-500' },
-    { icon: FiAlertCircle, title: 'Complaints', desc: 'Raise issues', href: '/complaints', color: 'bg-amber-500', stat: stats.complaints },
-    { icon: FiHeart, title: 'Hospital', desc: 'Doctor availability', href: '/hospital', color: 'bg-pink-500' },
-    { icon: FiGrid, title: 'Rooms', desc: 'Room allocation', href: '/dashboard', color: 'bg-indigo-500' },
+    { icon: FiCoffee, title: 'Cafeteria', desc: 'Book tables & order food', href: '/cafeteria', stat: stats.cafeteria },
+    { icon: FiGrid, title: 'Parking', desc: 'Reserve parking spots', href: '/parking', stat: stats.parking },
+    { icon: FiBookOpen, title: 'Exams', desc: 'View exam schedules', href: '/exams', stat: stats.exams },
+    { icon: FiClock, title: 'Timetable', desc: 'Class schedule', href: '/timetable' },
+    { icon: FiMapPin, title: 'Turf', desc: 'Book sports turf', href: '/turf' },
+    { icon: FiAlertCircle, title: 'Complaints', desc: 'Raise issues', href: '/complaints', stat: stats.complaints },
+    { icon: FiHeart, title: 'Hospital', desc: 'Doctor availability', href: '/hospital' },
+    { icon: FiGrid, title: 'Rooms', desc: 'Room allocation', href: '/dashboard' },
   ];
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user.name}!</h1>
-        <p className="text-gray-500 text-sm mt-1">{user.department}{user.year ? ` — Year ${user.year}` : ''}</p>
+    <div className="animate-apple-in">
+      <div className="mb-10">
+        <h1 className="text-4xl font-bold text-ink tracking-tight mb-1">Welcome back, {user.name}</h1>
+        <p className="text-muted text-lg">{user.department}{user.year ? ` \u2014 Year ${user.year}` : ''}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Exams Scheduled', value: stats.exams, total: 20, color: '#ef4444' },
-          { label: 'My Complaints', value: stats.complaints, total: 10, color: '#f59e0b' },
-          { label: 'Cafeterias', value: stats.cafeteria, total: 10, color: '#f97316' },
-          { label: 'Parking Zones', value: stats.parking, total: 10, color: '#0ea5e9' },
-        ].map((s) => (
-          <div key={s.label} className="card flex items-center gap-4">
-            <div className="relative shrink-0">
-              <DonutChart value={s.value} total={s.total} color={s.color} />
-              <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">{s.value}</span>
+      {/* Stat Cards — Apple headline stat treatment */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        {statCards.map((s) => (
+          <div key={s.label} className="card-flat group">
+            <p className="text-sm font-medium text-muted mb-3">{s.label}</p>
+            <p className="text-5xl font-bold text-ink tracking-tight leading-none mb-4">{s.value}</p>
+            <div className="w-full h-1 bg-divider rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${Math.min((s.value / s.max) * 100, 100)}%`, backgroundColor: s.accent }}
+              />
             </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{s.label}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{s.value} of {s.total}</p>
-            </div>
+            <p className="text-xs text-muted mt-2">{s.value} of {s.max}</p>
           </div>
         ))}
       </div>
 
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Quick Access</h2>
+      {/* Quick Access Grid */}
+      <h2 className="text-sm font-medium text-muted mb-5 tracking-wide">Quick Access</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {modules.map(m => (
           <Link key={m.title} href={m.href} className="card group">
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`w-10 h-10 ${m.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <m.icon className="text-white" size={18} />
+            <div className="flex items-center gap-3.5 mb-0">
+              <div className="w-10 h-10 rounded-apple-sm bg-elevated flex items-center justify-center group-hover:bg-ink group-hover:text-white transition-all duration-300">
+                <m.icon className="text-muted group-hover:text-white transition-colors" size={18} strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 text-sm">{m.title}</h3>
-                <p className="text-gray-500 text-xs">{m.desc}</p>
+                <h3 className="font-semibold text-ink text-sm">{m.title}</h3>
+                <p className="text-muted text-xs">{m.desc}</p>
               </div>
             </div>
             {m.stat !== undefined && (
-              <div className="mt-3 pt-3 border-t border-cream-200">
+              <div className="mt-4 pt-4 border-t border-divider">
                 <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-xs text-gray-500">Available</span>
-                  <span className="text-xs font-bold text-gray-900">{m.stat}</span>
+                  <span className="text-xs text-muted">Available</span>
+                  <span className="text-xs font-semibold text-ink">{m.stat}</span>
                 </div>
-                <div className="h-1.5 bg-cream-100 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${m.color}`} style={{ width: `${Math.min((m.stat / 10) * 100, 100)}%` }} />
+                <div className="h-1 bg-elevated rounded-full overflow-hidden">
+                  <div className="h-full bg-accent rounded-full transition-all duration-500" style={{ width: `${Math.min((m.stat / 10) * 100, 100)}%` }} />
                 </div>
               </div>
             )}

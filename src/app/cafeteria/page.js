@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
-import { FiCoffee, FiClock, FiUsers, FiCheck, FiX, FiShoppingBag } from 'react-icons/fi';
+import { FiCoffee, FiClock, FiCheck, FiX, FiShoppingBag } from 'react-icons/fi';
 
 export default function CafeteriaPage() {
   const { user, loading } = useAuth();
@@ -74,31 +74,33 @@ export default function CafeteriaPage() {
 
   if (loading || !user) return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="animate-spin w-8 h-8 border-4 border-teal-800 border-t-transparent rounded-full" />
+      <div className="w-6 h-6 border-2 border-ink/20 border-t-ink rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div>
+    <div className="animate-apple-in">
       <Toaster position="top-center" />
-      <div className="mb-6">
-        <p className="text-gray-500 text-sm">Book your table and order food in advance</p>
+      <div className="mb-8">
+        <p className="text-muted text-lg">Book your table and order food in advance</p>
       </div>
 
       {myBookings.filter(b => b.status === 'confirmed').length > 0 && (
-        <div className="cardStatic mb-6 border border-emerald-200 bg-emerald-50/50">
-          <div className="flex items-center gap-2 mb-3">
-            <FiCheck className="text-emerald-600" size={16} />
-            <h3 className="text-sm font-bold text-emerald-800">Active Bookings</h3>
+        <div className="cardStatic mb-6 border border-emerald-200/60 bg-emerald-50/30">
+          <div className="flex items-center gap-2 mb-4">
+            <FiCheck className="text-emerald-600" size={16} strokeWidth={2} />
+            <h3 className="text-sm font-semibold text-emerald-800">Active Bookings</h3>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {myBookings.filter(b => b.status === 'confirmed').slice(0, 3).map(b => (
-              <div key={b._id} className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-cream-200">
+              <div key={b._id} className="flex items-center justify-between bg-white rounded-apple-sm px-4 py-3 border border-divider">
                 <div className="flex items-center gap-3">
-                  <FiCoffee className="text-coral-500" size={16} />
+                  <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
+                    <FiCoffee className="text-orange-500" size={14} strokeWidth={1.5} />
+                  </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{b.resourceName}</p>
-                    <p className="text-xs text-gray-500">{new Date(b.date).toLocaleDateString()} • {b.timeSlot}</p>
+                    <p className="text-sm font-medium text-ink">{b.resourceName}</p>
+                    <p className="text-xs text-muted">{new Date(b.date).toLocaleDateString()} \u2022 {b.timeSlot}</p>
                   </div>
                 </div>
                 <span className="badge-green">Confirmed</span>
@@ -108,38 +110,35 @@ export default function CafeteriaPage() {
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-4">
-        <FiCoffee className="text-coral-500" size={18} />
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Available Cafeterias</h2>
-      </div>
+      <h2 className="text-sm font-medium text-muted mb-5 tracking-wide">Available Cafeterias</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           {cafeterias.length === 0 ? (
-            <div className="card text-center py-16 text-gray-500">No cafeterias available yet.</div>
+            <div className="card-flat text-center py-20 text-muted">No cafeterias available yet.</div>
           ) : cafeterias.map(c => {
             const totalMenuItems = c.menu?.filter(m => m.available).length || 0;
             return (
               <div key={c._id} onClick={() => handleSelectCafeteria(c)}
-                className={`card cursor-pointer transition-all ${selected?._id === c._id ? 'ring-2 ring-teal-500 shadow-cardHover' : ''}`}>
+                className={`card cursor-pointer ${selected?._id === c._id ? 'ring-2 ring-accent shadow-apple-hover' : ''}`}>
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-bold text-gray-900 text-lg">{c.name}</h3>
-                    <p className="text-sm text-gray-500">{c.location}</p>
+                    <h3 className="font-semibold text-ink text-lg">{c.name}</h3>
+                    <p className="text-sm text-muted">{c.location}</p>
                   </div>
-                  <span className="badge-teal">{c.totalSlots} seats</span>
+                  <span className="badge-accent">{c.totalSlots} seats</span>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                  <span className="flex items-center gap-1"><FiClock size={12} /> {c.operatingHours}</span>
-                  {totalMenuItems > 0 && <span className="flex items-center gap-1"><FiShoppingBag size={12} /> {totalMenuItems} items</span>}
+                <div className="flex items-center gap-4 text-xs text-muted mb-4">
+                  <span className="flex items-center gap-1"><FiClock size={12} strokeWidth={1.5} /> {c.operatingHours}</span>
+                  {totalMenuItems > 0 && <span className="flex items-center gap-1"><FiShoppingBag size={12} strokeWidth={1.5} /> {totalMenuItems} items</span>}
                 </div>
                 {c.menu?.length > 0 && (
-                  <div className="pt-3 border-t border-cream-200">
-                    <p className="text-xs font-semibold text-gray-500 mb-2">Popular Items</p>
+                  <div className="pt-4 border-t border-divider">
+                    <p className="text-xs font-medium text-muted mb-2.5">Popular Items</p>
                     <div className="flex flex-wrap gap-1.5">
                       {c.menu.filter(m => m.available).slice(0, 6).map((m, i) => (
-                        <span key={i} className="text-xs bg-cream-100 text-gray-600 px-2.5 py-1 rounded-lg">
-                          {m.item} <span className="text-coral-600 font-medium">Rs.{m.price}</span>
+                        <span key={i} className="text-xs bg-elevated text-ink px-3 py-1.5 rounded-full font-medium">
+                          {m.item} <span className="text-accent ml-0.5">Rs.{m.price}</span>
                         </span>
                       ))}
                     </div>
@@ -152,22 +151,24 @@ export default function CafeteriaPage() {
 
         {showBookingPanel && selected && (
           <div className="lg:col-span-1">
-            <div className="cardStatic sticky top-24 border border-cream-200">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-gray-900">Book Table</h3>
-                <button onClick={() => { setShowBookingPanel(false); setSelected(null); }} className="text-gray-400 hover:text-gray-600">
-                  <FiX size={18} />
+            <div className="cardStatic sticky top-24">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-ink tracking-tight">Book Table</h3>
+                <button onClick={() => { setShowBookingPanel(false); setSelected(null); }}
+                  className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-muted hover:text-ink hover:bg-divider transition-all">
+                  <FiX size={16} strokeWidth={1.5} />
                 </button>
               </div>
-              <div className="mb-4 p-3 bg-cream-50 rounded-xl">
-                <p className="font-semibold text-sm text-gray-900">{selected.name}</p>
-                <p className="text-xs text-gray-500">{selected.location}</p>
+              <div className="mb-5 p-4 bg-elevated rounded-apple-md">
+                <p className="font-semibold text-ink">{selected.name}</p>
+                <p className="text-sm text-muted">{selected.location}</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
                   <label className="label">Date</label>
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input-field" min={new Date().toISOString().split('T')[0]} />
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+                    className="input-field" min={new Date().toISOString().split('T')[0]} />
                 </div>
 
                 <div>
@@ -180,13 +181,13 @@ export default function CafeteriaPage() {
                       return (
                         <button key={slot} disabled={full}
                           onClick={() => setTimeSlot(slot)}
-                          className={`p-2.5 rounded-xl border text-left transition-all text-xs ${
-                            timeSlot === slot ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-500' :
-                            full ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed' :
-                            'border-cream-200 hover:border-teal-300 bg-white'
+                          className={`p-3 rounded-apple-sm text-left transition-all duration-200 text-xs ${
+                            timeSlot === slot ? 'bg-ink text-white' :
+                            full ? 'bg-elevated text-muted opacity-40 cursor-not-allowed' :
+                            'bg-elevated text-ink hover:bg-divider'
                           }`}>
-                          <p className="font-medium text-gray-900">{slot}</p>
-                          <p className={`mt-0.5 ${full ? 'text-red-500' : low ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          <p className="font-medium">{slot}</p>
+                          <p className={`mt-0.5 ${full ? 'text-red-400' : low ? 'text-amber-600' : 'text-emerald-600'}`}>
                             {full ? 'Full' : `${info.available} left`}
                           </p>
                         </button>
@@ -197,40 +198,44 @@ export default function CafeteriaPage() {
 
                 <div>
                   <label className="label">Seats</label>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setSeats(Math.max(1, seats - 1))} className="w-9 h-9 rounded-lg bg-cream-100 flex items-center justify-center font-bold text-gray-600 hover:bg-cream-200">-</button>
-                    <span className="text-lg font-bold text-gray-900 w-8 text-center">{seats}</span>
-                    <button onClick={() => setSeats(Math.min(10, seats + 1))} className="w-9 h-9 rounded-lg bg-cream-100 flex items-center justify-center font-bold text-gray-600 hover:bg-cream-200">+</button>
+                  <div className="flex items-center gap-4">
+                    <button onClick={() => setSeats(Math.max(1, seats - 1))}
+                      className="w-10 h-10 rounded-full bg-elevated flex items-center justify-center font-medium text-ink hover:bg-divider transition-all text-lg">-</button>
+                    <span className="text-2xl font-bold text-ink w-8 text-center">{seats}</span>
+                    <button onClick={() => setSeats(Math.min(10, seats + 1))}
+                      className="w-10 h-10 rounded-full bg-elevated flex items-center justify-center font-medium text-ink hover:bg-divider transition-all text-lg">+</button>
                   </div>
                 </div>
 
                 {selected.menu?.filter(m => m.available).length > 0 && (
                   <div>
                     <label className="label">Order Food</label>
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    <div className="space-y-2 max-h-44 overflow-y-auto">
                       {selected.menu.filter(m => m.available).map((m, i) => (
                         <button key={i} onClick={() => toggleOrderItem(m.item)}
-                          className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-sm transition-all ${
-                            orderItems.includes(m.item) ? 'border-teal-500 bg-teal-50' : 'border-cream-200 hover:border-gray-300'
+                          className={`w-full flex items-center justify-between p-3 rounded-apple-sm text-sm transition-all duration-200 ${
+                            orderItems.includes(m.item) ? 'bg-ink text-white' : 'bg-elevated text-ink hover:bg-divider'
                           }`}>
-                          <span className="flex items-center gap-2">
-                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${orderItems.includes(m.item) ? 'border-teal-500 bg-teal-500' : 'border-gray-300'}`}>
-                              {orderItems.includes(m.item) && <FiCheck size={10} className="text-white" />}
+                          <span className="flex items-center gap-2.5">
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                              orderItems.includes(m.item) ? 'border-white bg-white' : 'border-muted/30'
+                            }`}>
+                              {orderItems.includes(m.item) && <FiCheck size={10} className="text-ink" strokeWidth={3} />}
                             </div>
-                            <span className="text-gray-700">{m.item}</span>
+                            <span className="font-medium">{m.item}</span>
                           </span>
-                          <span className="text-coral-600 font-medium">Rs.{m.price}</span>
+                          <span className={`font-medium ${orderItems.includes(m.item) ? 'text-white/70' : 'text-accent'}`}>Rs.{m.price}</span>
                         </button>
                       ))}
                     </div>
                     {orderItems.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-2">{orderItems.length} item(s) selected</p>
+                      <p className="text-xs text-muted mt-2">{orderItems.length} item(s) selected</p>
                     )}
                   </div>
                 )}
 
                 <button onClick={handleBook} disabled={bookingLoading || !timeSlot}
-                  className="btn-primary w-full py-3 disabled:opacity-40 disabled:cursor-not-allowed">
+                  className="btn-primary w-full py-3.5 disabled:opacity-30 disabled:cursor-not-allowed">
                   {bookingLoading ? 'Booking...' : 'Confirm Booking'}
                 </button>
               </div>
